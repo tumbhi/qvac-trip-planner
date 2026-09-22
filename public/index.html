@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QVAC Trip Planner — 100% On-Device AI Travel Concierge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="brand-icon-box">
+          <span class="icon-plane">✈️</span>
+        </div>
+        <div class="brand-info">
+          <div class="brand-heading-row">
+            <h1>Trip Planner AI</h1>
+            <span class="version-chip">@qvac/sdk 0.19.1</span>
+          </div>
+          <p class="brand-sub">100% On-Device Travel Concierge & Offline Itinerary Architect • Tether QVAC Hackathon</p>
+        </div>
+      </div>
+
+      <div class="header-status-group">
+        <div class="pill-badge pill-offline" title="Zero network calls required">
+          <span class="pill-dot"></span>
+          <span>Zero Cloud • 100% Offline</span>
+        </div>
+        <div class="pill-badge pill-gpu" id="gpuPill" title="Local Vulkan 1.4 GPU offload">
+          <span class="pill-dot"></span>
+          <span id="gpuName">RTX 4070 • Vulkan 1.4</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dedicated Model Management Strip -->
+    <section class="model-control-strip">
+      <div class="model-meta">
+        <div class="model-dropdown-area">
+          <label for="modelSelect" class="model-label">ON-DEVICE REASONING MODEL</label>
+          <select id="modelSelect" class="model-select">
+            <option value="llama32">Llama 3.2 1B Instruct (GGUF Q4_0) — Local Vulkan Offload</option>
+          </select>
+        </div>
+        <div class="model-state-display">
+          <div class="model-title" id="modelTitle">Model: Llama 3.2 1B Instruct (Q4_0)</div>
+          <div class="model-status-line" id="modelStatusLine">Status: Checking model state...</div>
+        </div>
+        <div class="progress-track" id="progressTrack" style="display: none;">
+          <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="model-actions">
+        <button class="btn-load-model" id="btnLoadModel">⚡ Load Model</button>
+        <button class="btn-unload-model" id="btnUnloadModel">Release Memory</button>
+      </div>
+    </section>
+
+    <!-- Presets Ribbon -->
+    <section class="presets-section">
+      <span class="presets-tag">POPULAR DESTINATIONS:</span>
+      <div class="preset-chips-cluster">
+        <button class="chip-item active" data-preset="tokyo">🇯🇵 Tokyo & Kyoto (7 Days)</button>
+        <button class="chip-item" data-preset="italy">🇮🇹 Amalfi & Rome (5 Days)</button>
+        <button class="chip-item" data-preset="swiss">🇨🇭 Swiss Alps (4 Days)</button>
+        <button class="chip-item" data-preset="iceland">🇮🇸 Iceland Ring Road (6 Days)</button>
+        <button class="chip-item" data-preset="paris">🇫🇷 Paris & Provence (5 Days)</button>
+      </div>
+    </section>
+
+    <!-- Main Workspace Layout -->
+    <main class="workbench-grid">
+      <!-- Left: Trip Configuration Deck -->
+      <section class="panel-card config-deck">
+        <div class="panel-header">
+          <div class="panel-title-cluster">
+            <span class="step-tag">CONFIG</span>
+            <h2 class="panel-title">Trip Parameters</h2>
+          </div>
+          <button class="btn-reset-form" id="btnReset">Reset</button>
+        </div>
+
+        <div class="panel-content">
+          <!-- Destination -->
+          <div class="form-field">
+            <label for="inputDestination" class="field-label">Destination</label>
+            <div class="input-with-icon">
+              <span class="input-icon">📍</span>
+              <input type="text" id="inputDestination" class="text-input" placeholder="e.g. Tokyo & Kyoto, Japan" value="Tokyo & Kyoto, Japan">
+            </div>
+          </div>
+
+          <!-- Duration & Season Grid -->
+          <div class="form-row-grid">
+            <div class="form-field">
+              <label for="inputDays" class="field-label">Duration: <span id="daysCountDisplay" class="accent-val">7</span> Days</label>
+              <input type="range" id="inputDays" min="1" max="14" value="7" class="slider-input">
+            </div>
+
+            <div class="form-field">
+              <label for="inputSeason" class="field-label">Season / Month</label>
+              <select id="inputSeason" class="select-input">
+                <option value="Spring / Cherry Blossom">🌸 Spring (Cherry Blossom)</option>
+                <option value="Summer Sunshine">☀️ Summer (Festivals)</option>
+                <option value="Autumn Foliage" selected>🍁 Autumn (Foliage)</option>
+                <option value="Winter Wonderland">❄️ Winter (Snow / Lights)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Travel Vibe -->
+          <div class="form-field">
+            <label class="field-label">Travel Style & Vibe</label>
+            <div class="vibe-pills-cluster">
+              <button type="button" class="vibe-pill active" data-vibe="Foodie & Culinary Delights">🍜 Foodie & Hidden Alleys</button>
+              <button type="button" class="vibe-pill" data-vibe="Cultural, Historic Temples & Shrines">⛩️ Cultural & History</button>
+              <button type="button" class="vibe-pill" data-vibe="Outdoor Adventure, Hiking & Nature">⛰️ Nature & Adventure</button>
+              <button type="button" class="vibe-pill" data-vibe="Luxury, Spa & High-End Leisure">✨ Luxury & Relaxation</button>
+              <button type="button" class="vibe-pill" data-vibe="Backpacker, Budget & Fast-Paced">🎒 Backpacker & Local Transit</button>
+            </div>
+          </div>
+
+          <!-- Group & Budget Row -->
+          <div class="form-row-grid">
+            <div class="form-field">
+              <label for="inputGroup" class="field-label">Travel Group</label>
+              <select id="inputGroup" class="select-input">
+                <option value="Couple / Romantic" selected>👫 Couple (Romantic)</option>
+                <option value="Solo Traveler">🎒 Solo Explorer</option>
+                <option value="Family with Kids">👨‍👩‍👧 Family with Children</option>
+                <option value="Friends Squad">👥 Friends Group</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="inputBudget" class="field-label">Budget Tier</label>
+              <select id="inputBudget" class="select-input">
+                <option value="Moderate ($$) - Boutique & Comfort" selected>Moderate ($$) - Boutique Comfort</option>
+                <option value="Budget ($) - Smart & Economical">Budget ($) - Smart & Economical</option>
+                <option value="Luxury ($$$) - 5-Star & Premium">Luxury ($$$) - 5-Star & Premium</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Must-Sees & Dietary -->
+          <div class="form-field">
+            <label for="inputInterests" class="field-label">Special Interests & Dietary Notes (Optional)</label>
+            <textarea id="inputInterests" class="textarea-input" rows="2" placeholder="e.g. Vintage photography spots, ramen hidden gems, teamLab Planets, matcha tasting..."></textarea>
+          </div>
+        </div>
+
+        <div class="panel-action-bar">
+          <div class="shortcut-legend"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to generate</div>
+          <button class="btn-generate-main" id="btnGenerate">
+            <span class="btn-sparkle">✈️</span>
+            <span>Craft Itinerary</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Right: Live Itinerary Output Deck -->
+      <section class="panel-card output-deck">
+        <div class="panel-header">
+          <div class="panel-title-cluster">
+            <span class="step-tag tag-output">ITINERARY</span>
+            <div class="view-tabs">
+              <button class="view-tab active" id="tabBoard">Interactive Plan</button>
+              <button class="view-tab" id="tabRaw">Raw Markdown (.md)</button>
+            </div>
+          </div>
+
+          <div class="output-actions">
+            <button class="btn-action-small" id="btnCopy">📋 Copy</button>
+            <button class="btn-action-small" id="btnDownload">💾 Save .md</button>
+            <button class="btn-action-small" id="btnPrint">🖨️ Print</button>
+          </div>
+        </div>
+
+        <div class="panel-content output-scroll-container">
+          <!-- Streaming state spinner -->
+          <div class="streaming-banner" id="streamBanner" style="display: none;">
+            <span class="pulse-ring"></span>
+            <span>Architecting your bespoke itinerary on local Vulkan GPU...</span>
+          </div>
+
+          <!-- Interactive Board -->
+          <div class="itinerary-board" id="itineraryBoard">
+            <div class="empty-itinerary-state">
+              <div class="empty-icon">🗺️</div>
+              <h3>Your Bespoke Travel Plan Will Render Here</h3>
+              <p>Pick a destination and travel vibe on the left, then click <strong>Craft Itinerary</strong> to generate a day-by-day plan, packing checklist, and local survival guide 100% offline.</p>
+            </div>
+          </div>
+
+          <!-- Raw Markdown View -->
+          <textarea id="rawMarkdownDisplay" class="raw-markdown-textarea" readonly style="display: none;"></textarea>
+        </div>
+
+        <!-- Telemetry Strip -->
+        <div class="telemetry-bar">
+          <div class="telemetry-chip">
+            <span class="tele-label">SPEED:</span>
+            <span class="tele-value" id="teleSpeed">-- tok/s</span>
+          </div>
+          <div class="telemetry-chip">
+            <span class="tele-label">TTFT:</span>
+            <span class="tele-value" id="teleTtft">-- ms</span>
+          </div>
+          <div class="telemetry-chip">
+            <span class="tele-label">TOKENS:</span>
+            <span class="tele-value" id="teleTokens">0</span>
+          </div>
+          <div class="telemetry-chip tele-egress">
+            <span class="tele-label">CLOUD EGRESS:</span>
+            <span class="tele-value tele-safe">0.0 KB (100% Offline)</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
