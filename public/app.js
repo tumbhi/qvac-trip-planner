@@ -252,20 +252,27 @@ function updateModelUI(data) {
 
   if (modelStatus === 'ready') {
     modelTitle.textContent = 'Model: ' + (data.modelName || 'Llama 3.2 1B Instruct (Q4_0)');
-    modelStatusLine.textContent = 'Status: Model ready on local Vulkan 1.4 GPU';
+    modelStatusLine.innerHTML = 'Status: <span style="color:#10b981;font-weight:600;">● Model ready on local Vulkan 1.4 GPU</span>';
     btnLoadModel.disabled = true;
     btnLoadModel.textContent = '⚡ Model Loaded';
     btnUnloadModel.disabled = false;
     progressTrack.style.display = 'none';
   } else if (modelStatus === 'loading') {
-    modelTitle.textContent = 'Loading on-device model weights...';
-    const pct = data.downloadProgress ? data.downloadProgress.percentage.toFixed(0) : 0;
-    modelStatusLine.textContent = 'Status: Allocating VRAM & loading weights (' + pct + '%)';
+    modelTitle.textContent = 'Loading on-device model weights into GPU...';
+    const pct = data.downloadProgress && data.downloadProgress.percentage > 0 ? data.downloadProgress.percentage.toFixed(0) : 0;
+    modelStatusLine.innerHTML = 'Status: <span style="color:#f59e0b;font-weight:600;">⏳ Allocating VRAM & compiling Vulkan shaders... ' + (pct > 0 ? '(' + pct + '%)' : '') + '</span>';
     btnLoadModel.disabled = true;
     btnLoadModel.textContent = 'Loading...';
     btnUnloadModel.disabled = true;
     progressTrack.style.display = 'block';
-    progressFill.style.width = pct + '%';
+    progressFill.style.width = (pct || 30) + '%';
+  } else if (modelStatus === 'error') {
+    modelTitle.textContent = 'Model Initialization Failed';
+    modelStatusLine.innerHTML = 'Status: <span style="color:#ef4444;font-weight:600;">✖ ' + (data.loadError || 'Failed to initialize model') + '</span>';
+    btnLoadModel.disabled = false;
+    btnLoadModel.textContent = '🔄 Retry Load';
+    btnUnloadModel.disabled = true;
+    progressTrack.style.display = 'none';
   } else {
     modelTitle.textContent = 'Model: Llama 3.2 1B Instruct (GGUF Q4_0)';
     modelStatusLine.textContent = 'Status: Model unloaded (RAM/VRAM released)';
@@ -308,14 +315,34 @@ async function generateTripPlan() {
   }
 
   if (modelStatus !== 'ready') {
+    btnGenerate.disabled = true;
+    streamBanner.style.display = 'flex';
+    streamBanner.innerHTML = '<span class="pulse-dot"></span> ⚡ Loading on-device model into local GPU... Itinerary generation will begin automatically.';
     await handleLoad();
-    alert('On-device travel model is loading into GPU memory. Please wait a few seconds...');
-    return;
+
+    let attempts = 0;
+    while (modelStatus !== 'ready' && attempts < 40) {
+      await new Promise(r => setTimeout(r, 700));
+      await checkStatus();
+      attempts++;
+      if (modelStatus === 'error') {
+        btnGenerate.disabled = false;
+        streamBanner.style.display = 'none';
+        return;
+      }
+    }
+
+    if (modelStatus !== 'ready') {
+      btnGenerate.disabled = false;
+      streamBanner.style.display = 'none';
+      return;
+    }
   }
 
   isGenerating = true;
   btnGenerate.disabled = true;
   streamBanner.style.display = 'flex';
+  streamBanner.innerHTML = '<span class="pulse-dot"></span> Crafting your bespoke itinerary on local Vulkan 1.4 GPU...';
   itineraryBoard.innerHTML = '';
   rawMarkdownDisplay.value = '';
   currentMarkdown = '';

@@ -57,6 +57,40 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// Shared model load runner
+async function triggerModelLoad() {
+  if (modelStatus === 'ready' && currentModelId) return true;
+  if (modelStatus === 'loading') return true;
+
+  modelStatus = 'loading';
+  loadError = null;
+  downloadProgress = { percentage: 0, downloaded: 0, total: 0 };
+
+  try {
+    console.log('▸ [Trip Planner] Loading on-device model (Llama 3.2 1B Instruct)...');
+    currentModelId = await loadModel({
+      modelSrc: LLAMA_3_2_1B_INST_Q4_0,
+      onProgress: (p) => {
+        downloadProgress = {
+          percentage: p.percentage || 0,
+          downloaded: p.downloaded || 0,
+          total: p.total || 0
+        };
+        const mb = (n) => (n / 1e6).toFixed(1);
+        console.log(`▸ [QVAC Download] ${p.percentage?.toFixed(0)}% (${mb(p.downloaded)}/${mb(p.total)} MB)`);
+      }
+    });
+    modelStatus = 'ready';
+    console.log(`✔ [Trip Planner] Model ready! ID: ${currentModelId}`);
+    return true;
+  } catch (err) {
+    modelStatus = 'error';
+    loadError = err.message || String(err);
+    console.error('✖ [Trip Planner] Error loading model:', err);
+    return false;
+  }
+}
+
 // POST /api/model/load
 app.post('/api/model/load', async (req, res) => {
   if (modelStatus === 'ready' && currentModelId) {
@@ -67,35 +101,8 @@ app.post('/api/model/load', async (req, res) => {
     return res.status(409).json({ success: false, message: 'Model is currently loading' });
   }
 
-  modelStatus = 'loading';
-  loadError = null;
-  downloadProgress = { percentage: 0, downloaded: 0, total: 0 };
-
   res.json({ success: true, message: 'Model load initiated in background' });
-
-  (async () => {
-    try {
-      console.log('▸ [Trip Planner] Loading on-device model (Llama 3.2 1B Instruct)...');
-      currentModelId = await loadModel({
-        modelSrc: LLAMA_3_2_1B_INST_Q4_0,
-        onProgress: (p) => {
-          downloadProgress = {
-            percentage: p.percentage || 0,
-            downloaded: p.downloaded || 0,
-            total: p.total || 0
-          };
-          const mb = (n) => (n / 1e6).toFixed(1);
-          console.log(`▸ [QVAC Download] ${p.percentage?.toFixed(0)}% (${mb(p.downloaded)}/${mb(p.total)} MB)`);
-        }
-      });
-      modelStatus = 'ready';
-      console.log(`✔ [Trip Planner] Model ready! ID: ${currentModelId}`);
-    } catch (err) {
-      modelStatus = 'error';
-      loadError = err.message || String(err);
-      console.error('✖ [Trip Planner] Error loading model:', err);
-    }
-  })();
+  triggerModelLoad();
 });
 
 // POST /api/model/unload
@@ -235,4 +242,6 @@ app.listen(PORT, () => {
   console.log('  🔒 100% On-Device AI • Zero Cloud • Local Vulkan 1.4 GPU');
   console.log('  📖 Tether @qvac/sdk v0.19.1 Active (Offline Travel Concierge)');
   console.log('===========================================================');
+  console.log('▸ Auto-warming Llama 3.2 1B Instruct on GPU...');
+  triggerModelLoad();
 });
