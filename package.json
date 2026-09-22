@@ -1,0 +1,29 @@
+{
+  "name": "qvac-trip-planner",
+  "version": "1.0.0",
+  "description": "100% on-device AI travel itinerary architect & offline trip concierge powered by @qvac/sdk",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test-trip.js"
+  },
+  "keywords": [
+    "qvac",
+    "on-device-ai",
+    "travel-planner",
+    "itinerary-generator",
+    "local-ai",
+    "vulkan",
+    "offline-travel",
+    "llama3"
+  ],
+  "author": "tumbhi",
+  "license": "MIT",
+  "dependencies": {
+    "@qvac/sdk": "^0.19.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
